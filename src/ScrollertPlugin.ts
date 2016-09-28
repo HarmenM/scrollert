@@ -50,6 +50,8 @@ module Scrollert {
 
         private originalCssValues:{ [id: string] : string; };
 
+        private rafId:number;
+
         constructor(private containerElm:JQuery, options?:PluginOptions)
         {
             this.options = jQuery.extend( {}, this.options, options );
@@ -60,9 +62,6 @@ module Scrollert {
             this.offsetContentElmScrollbars();
             this.update();
 
-            // Relay scroll event on scrollbar/track to content and prevent outer scroll.
-            this.containerElm.on('wheel.' + this.options.eventNamespace, this.onScrollWheel);
-
             /*
              * @todo The keydown outer scroll prevention is not working yet.
              */
@@ -70,6 +69,8 @@ module Scrollert {
             {
                 // Prevent outer scroll on key down
                 //this.contentElm.on('keydown.' + this.options.eventNamespace, this.onKeyDown);
+
+                this.contentElm.on('wheel.' + this.options.eventNamespace, this.onPreventOuterScroll);
             }
 
             //There could be a zoom change. Zoom is almost not indistinguishable from resize events. So on window resize, recalculate contentElm offet
@@ -104,36 +105,36 @@ module Scrollert {
                 ).append(trackElm = jQuery('<div />').addClass(this.options.cssPrefix + '-track'))
             );
 
+            scrollbarElm.on('wheel.' + axis + "." + this.options.eventNamespace, this.onScrollOnScrollbar.bind(this, axis, scrollbarElm, trackElm));
+
             return {
                 scrollbar: scrollbarElm,
                 track: trackElm
             };
         };
 
-        private onScrollWheel = (event:JQueryMouseEventObject) => {
+        private onScrollOnScrollbar = (axis:AxisType, scrollbarElm:JQuery, trackElm:JQuery, event:JQueryMouseEventObject) => {
+
+            let delta:number = (<WheelEvent>event.originalEvent)['delta' + axis.toUpperCase()];
+
+            if(delta && (event.target === scrollbarElm.get(0) || event.target === trackElm.get(0)))
+            {
+                event.preventDefault();
+
+                this.contentElm[axis ==='y' ? 'scrollTop' : 'scrollLeft'](
+                    this.getValue(this.contentElm, 'scrollPos', axis) + delta
+                );
+            }
+        };
+
+        private onPreventOuterScroll = (event:JQueryMouseEventObject) => {
 
             let originalEvent:WheelEvent = <WheelEvent>event.originalEvent;
 
             for(let axis of this.options.axes)
             {
                 let delta = originalEvent['delta' + axis.toUpperCase()];
-
-                if(delta && this.scrollbarElms[axis]
-                    && (event.target === this.scrollbarElms[axis].scrollbar.get(0)
-                        || event.target === this.scrollbarElms[axis].track.get(0)
-                    )
-                )
-                {
-                    event.preventDefault();
-
-                    this.contentElm[axis ==='y' ? 'scrollTop' : 'scrollLeft'](
-                        this.getValue(this.contentElm, 'scrollPos', axis) + delta
-                    );
-                }
-                else if(this.options.preventOuterScroll === true)
-                {
-                    if (delta !== 0) this.preventOuterScroll(axis, (delta < 0) ? "heen" : "weer", event);
-                }
+                if (delta !== 0) this.preventOuterScroll(axis, (delta < 0) ? "heen" : "weer", event);
             }
         };
 
@@ -324,11 +325,20 @@ module Scrollert {
             );
         }
 
+        private dinges = 0;
         private onScroll(axis:AxisType, scrollbarElm:JQuery, trackElm:JQuery, event:MouseEvent)
         {
+            // window.cancelAnimationFrame(this.rafId);
+
+            if(++this.dinges % 2 !== 0)
+            {
+                return;
+            }
             if(this.scrollCache[axis] !== (this.scrollCache[axis] = this.getValue(this.contentElm, 'scrollPos', axis)))
             {
-                this.positionTrack(axis, scrollbarElm, trackElm);
+                // this.rafId = window.requestAnimationFrame(() => {
+                    this.positionTrack(axis, scrollbarElm, trackElm);
+                // })
             }
         }
 

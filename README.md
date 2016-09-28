@@ -72,12 +72,14 @@ Specify to which axis or axes Scrollert.js must listen. Gives horizontal and/or 
 
 **Default:** `['x', 'y']`
 
-### preventOuterScroll (experimental)
+### preventOuterScroll (needs re-implementation)
 Prevents scrolling of parent elements while hovering a scrollert pane.
 
 **Type:** boolean
 
 **Default:** `false`
+
+<sup>It proves to be quite difficult to ask the DOM who's scrolling. Needs some rework.</sup>
 
 ### cssPrefix
 The prefix which is prepended to all css-classes.

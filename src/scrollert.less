@@ -80,7 +80,7 @@
                 border-radius: @hover-size/2;
                 background: @track-color;
                 opacity: @opacity-default-track;
-                }
+            }
         }
 
         &-y
@@ -96,6 +96,8 @@
                 height: 0;
                 width: @outer-size;
                 min-height: @min-track-size;
+
+                transition: top 100ms;
             }
 
             &:before, > .scrollert-track:before
